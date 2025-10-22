@@ -1,0 +1,117 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, UnexpectedAlertPresentException
+import time
+
+FILE_PATH = "file:///d:/Lab 03/LOGIN/giaodien.html"
+
+driver = webdriver.Chrome()
+
+def accept_alert_if_present(timeout=2):
+    try:
+        WebDriverWait(driver, timeout).until(EC.alert_is_present())
+        alert = driver.switch_to.alert
+        print("Dong alert:", alert.text)
+        alert.accept()
+        time.sleep(1.5)
+    except TimeoutException:
+        # khong co alert
+        pass
+    except Exception as e:
+        print("Loi khi dong alert:", e)
+
+def safe_get(url, retries=3):
+    for attempt in range(retries):
+        try:
+            driver.get(url)
+            return
+        except UnexpectedAlertPresentException:
+            print("Phat hien alert khi get, se dong alert va thu lai")
+            accept_alert_if_present(timeout=2)
+            time.sleep(0.5)
+    # fallback: dieu huong bang javascript
+    try:
+        print("Thu fallback: dieu huong bang javascript")
+        driver.execute_script("window.location.href = arguments[0];", url)
+    except Exception as e:
+        print("Khong the dieu huong bang javascript:", e)
+
+def reset_to_login():
+    accept_alert_if_present(timeout=1)
+    safe_get(FILE_PATH)
+    time.sleep(1)
+
+def test_empty_both_fields():
+    print("Test 1: Bo trong Username va Password")
+    reset_to_login()
+    driver.find_element(By.CLASS_NAME, "login-btn").click()
+    accept_alert_if_present(timeout=3)
+
+def test_empty_username():
+    print("Test 2: Bo trong Username")
+    reset_to_login()
+    driver.find_element(By.ID, "password").send_keys("123456")
+    driver.find_element(By.CLASS_NAME, "login-btn").click()
+    accept_alert_if_present(timeout=3)
+
+def test_empty_password():
+    print("Test 3: Bo trong Password")
+    reset_to_login()
+    driver.find_element(By.ID, "username").send_keys("admin")
+    driver.find_element(By.CLASS_NAME, "login-btn").click()
+    accept_alert_if_present(timeout=3)
+
+def test_valid_login():
+    print("Test 4: Nhap dung Username va Password")
+    reset_to_login()
+    driver.find_element(By.ID, "username").send_keys("admin")
+    driver.find_element(By.ID, "password").send_keys("123456")
+    driver.find_element(By.CLASS_NAME, "login-btn").click()
+    accept_alert_if_present(timeout=5)
+
+def test_forgot_password_link():
+    print("Test 5: Kiem tra link Forgot password")
+    reset_to_login()
+    try:
+        forgot_link = driver.find_element(By.CLASS_NAME, "forgot-link")
+        if forgot_link.is_displayed() and forgot_link.is_enabled():
+            print("Link Forgot password ton tai va co the click")
+            print("Duong dan:", forgot_link.get_attribute("href"))
+            forgot_link.click()
+            accept_alert_if_present(timeout=2)
+            time.sleep(0.5)
+            print("Da click vao link Forgot password")
+        else:
+            print("Link Forgot password khong kha dung")
+    except Exception as e:
+        print("Khong tim thay link Forgot password:", e)
+
+def test_signup_link():
+    print("Test 6: Kiem tra link SIGN UP")
+    reset_to_login()
+    try:
+        signup_link = driver.find_element(By.LINK_TEXT, "SIGN UP")
+        if signup_link.is_displayed() and signup_link.is_enabled():
+            print("Link SIGN UP ton tai va co the click")
+            print("Duong dan:", signup_link.get_attribute("href"))
+            signup_link.click()
+            accept_alert_if_present(timeout=2)
+            time.sleep(0.5)
+            print("Da click vao link SIGN UP")
+        else:
+            print("Link SIGN UP khong kha dung")
+    except Exception as e:
+        print("Khong tim thay link SIGN UP:", e)
+
+# Chay cac test
+test_empty_both_fields()
+test_empty_username()
+test_empty_password()
+test_valid_login()
+test_forgot_password_link()
+test_signup_link()
+
+print("Hoan tat kiem thu")
+driver.quit()
